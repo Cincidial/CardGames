@@ -13,3 +13,6 @@ pub var window: *sdlc.SDL_Window = undefined;
 pub var gpu_device: *sdlc.SDL_GPUDevice = undefined;
 pub var audio_device: AudioDevice = undefined;
 pub var sampler: *sdlc.SDL_GPUSampler = undefined;
+
+pub var tex_quad_pipeline: *sdlc.SDL_GPUGraphicsPipeline = undefined;
+pub var text_inst_quad_pipeline: *sdlc.SDL_GPUGraphicsPipeline = undefined;
