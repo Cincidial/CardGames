@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const assets = @import("assets");
 const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
 
@@ -131,6 +132,9 @@ fn init() !sdlc.SDL_AppResult {
     }) orelse return SDLError.UnableToCreatePipeline;
     errdefer sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);
 
+    // Asset creation
+    try assets.init(context.io, context.gpu_device, &context.audio_device);
+
     // Finished
     init_complete = true;
     return sdlc.SDL_APP_CONTINUE;
@@ -154,6 +158,8 @@ fn event(e: sdlc.SDL_Event) !sdlc.SDL_AppResult {
 
 fn quit(_: sdlc.SDL_AppResult) void {
     if (!init_complete) return;
+
+    assets.deinit();
 
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.tex_quad_pipeline);
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);

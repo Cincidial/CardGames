@@ -17,6 +17,7 @@ pub const TextAlignment = enum {
 };
 
 /// Where T is the vertex shader struct
+/// TODO: Put this inside of the text struct so on import of text can cover it
 pub fn FontRenderer(comptime T: type) type {
     return struct {
         comptime {

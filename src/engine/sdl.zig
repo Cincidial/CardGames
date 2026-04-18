@@ -67,21 +67,3 @@ pub inline fn SDL_GetBasePath() []const u8 {
     }
     return exe_path.?;
 }
-
-pub inline fn SDL_PIXELFLAG(format: c_uint) bool {
-    return ((format >> 28) & 0x0F) != 1;
-}
-pub inline fn SDL_ISPIXELFORMAT_FOURCC(format: c_uint) bool {
-    return (format != 0) and SDL_PIXELFLAG(format);
-}
-pub inline fn SDL_BYTESPERPIXEL(format: c_uint) u8 {
-    if (SDL_ISPIXELFORMAT_FOURCC(format)) {
-        if ((format == sdlc.SDL_PIXELFORMAT_YUY2) or (format == sdlc.SDL_PIXELFORMAT_UYVY) or (format == sdlc.SDL_PIXELFORMAT_YVYU) or (format == sdlc.SDL_PIXELFORMAT_P010)) {
-            return 2;
-        }
-
-        return 1;
-    }
-
-    return @intCast((format >> @as(c_int, 0)) & @as(c_int, 0xFF));
-}

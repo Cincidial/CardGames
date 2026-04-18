@@ -58,12 +58,12 @@ pub const Font = struct {
     base: f32 = 0,
     glyphs: [255]Glyph = @splat(.{}),
 
-    pub fn init(absolute_path: []const u8) !Font {
-        const file = try std.fs.openFileAbsolute(absolute_path, .{});
-        defer file.close();
+    pub fn init(io: std.Io, absolute_path: []const u8) !Font {
+        const file = try std.Io.Dir.openFileAbsolute(io, absolute_path, .{});
+        defer file.close(io);
 
         var file_buffer: [1024]u8 = undefined;
-        var reader = file.reader(&file_buffer);
+        var reader = file.reader(io, &file_buffer);
 
         var font: Font = .{};
         while (try reader.interface.takeDelimiter('\n')) |line| {

@@ -20,7 +20,7 @@ pub fn init(path: []const u8, device: *sdlc.SDL_GPUDevice) TextureError!@This() 
     const png = sdlc.SDL_LoadPNG(path.ptr) orelse return TextureError.CouldNotLoadPng;
     defer sdlc.SDL_DestroySurface(png);
 
-    const png_argb_bytes: u32 = @intCast(png.*.w * png.*.h * sdl.SDL_BYTESPERPIXEL(png.*.format));
+    const png_argb_bytes: u32 = @intCast(png.*.w * png.*.h * sdlc.SDL_BYTESPERPIXEL(@as(c_int, @intCast(png.*.format))));
     const texture = sdlc.SDL_CreateGPUTexture(device, &sdlc.SDL_GPUTextureCreateInfo{
         .type = sdlc.SDL_GPU_TEXTURETYPE_2D,
         .format = sdlc.SDL_GetGPUTextureFormatFromPixelFormat(png.*.format),

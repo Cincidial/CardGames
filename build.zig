@@ -26,6 +26,7 @@ pub fn build(b: *std.Build) !void {
     const assetgen_cmd = b.addRunArtifact(assetgen);
     assetgen_step.dependOn(&assetgen_cmd.step);
     assetgen_cmd.addDirectoryArg(b.path(asset_dir_name));
+    assetgen_cmd.has_side_effects = true;
     const assetgen_file = assetgen_cmd.addOutputFileArg("assets.zig");
     const assetgen_mod = b.createModule(.{
         .root_source_file = assetgen_file,

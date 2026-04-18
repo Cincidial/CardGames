@@ -42,7 +42,7 @@ pub fn main(init: std.process.Init) !void {
         \\}};
         \\
         \\var finished_init = false;
-        \\pub fn init(gpu_device: *sdlc.SDL_GPUDevice, audio_device: *AudioDevice) !void {{
+        \\pub fn init(io: std.Io, gpu_device: *sdlc.SDL_GPUDevice, audio_device: *AudioDevice) !void {{
         \\    var buffer: [std.fs.max_path_bytes]u8 = undefined;
         \\    var path_alloc: std.heap.FixedBufferAllocator = .init(&buffer);
         \\    var path: [:0]u8 = undefined;
@@ -98,7 +98,7 @@ pub fn main(init: std.process.Init) !void {
                 try deinit_strings.append(init.arena.allocator(), deinit_string);
             } else if (std.mem.eql(u8, ext, ".fnt")) {
                 const name_string = try std.fmt.allocPrint(init.arena.allocator(), "    pub var {s}: typography.Font = undefined;", .{name});
-                const init_set_var_string = try std.fmt.allocPrint(init.arena.allocator(), "    Fonts.{s} = try .init(path);", .{name});
+                const init_set_var_string = try std.fmt.allocPrint(init.arena.allocator(), "    Fonts.{s} = try .init(io, path);", .{name});
 
                 try font_strings.append(init.arena.allocator(), name_string);
                 try init_strings.append(init.arena.allocator(), init_path_string);
