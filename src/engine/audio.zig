@@ -32,9 +32,13 @@ pub const AudioStream = struct {
         var spec: sdlc.SDL_AudioSpec = undefined;
         var wav_data_ptr: [*]u8 = undefined;
         var wav_data_len: u32 = undefined;
+
         if (!sdlc.SDL_LoadWAV(wav_path.ptr, &spec, @ptrCast(&wav_data_ptr), &wav_data_len)) return AudioError.UnableToLoadWavFile;
+        errdefer sdlc.SDL_free(wav_data_ptr);
 
         const stream = sdlc.SDL_CreateAudioStream(&spec, null) orelse return AudioError.UnableToCreateStream;
+        errdefer sdlc.SDL_DestroyAudioStream(stream);
+
         if (!sdlc.SDL_BindAudioStream(device.device_id, stream)) return AudioError.UnableToBindStream;
 
         return .{ .wav_data = wav_data_ptr[0..wav_data_len], .stream = stream };
