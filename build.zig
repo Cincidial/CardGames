@@ -66,7 +66,7 @@ pub fn build(b: *std.Build) !void {
     });
     const sdl_lib = sdl_dep.artifact("SDL3");
     engine_mod.linkLibrary(sdl_lib);
-    exe.linkLibrary(sdl_lib);
+    exe.root_module.linkLibrary(sdl_lib);
 
     // Add shaders
     const shadercross = b.addExecutable(.{

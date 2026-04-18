@@ -19,7 +19,15 @@ const SDLError = error{
     UnableToSubmitGPUCmdBuf,
 };
 
-pub fn main() !u8 {
+pub fn main(preset: std.process.Init) !u8 {
+    context.perm_arena = preset.arena.allocator();
+    context.gpa = preset.gpa;
+    context.io = preset.io;
+    context.prng = .init(blk: {
+        var buffer: [8]u8 = undefined;
+        break :blk std.mem.readInt(u64, &buffer, .native);
+    });
+
     return sdl.startSdl(.{
         .init = init,
         .iterate = iterate,
@@ -31,17 +39,10 @@ pub fn main() !u8 {
 
 var init_complete = false;
 fn init() !sdlc.SDL_AppResult {
-    // RNG Creation
-    context.prng = .init(blk: {
-        var seed: u64 = undefined;
-        try std.posix.getrandom(std.mem.asBytes(&seed));
-        break :blk seed;
-    });
-
     // Window and device creation
     if (!sdlc.SDL_Init(sdlc.SDL_INIT_VIDEO | sdlc.SDL_INIT_AUDIO)) return SDLError.UnableToInit;
 
-    context.window = sdlc.SDL_CreateWindow("Card Games", @intFromFloat(context.window_dim.x), @intFromFloat(context.window_dim.x), 0) orelse return SDLError.UnableToCreateWindow;
+    context.window = sdlc.SDL_CreateWindow("Card Games", @trunc(context.window_dim.x), @trunc(context.window_dim.x), 0) orelse return SDLError.UnableToCreateWindow;
     errdefer sdlc.SDL_DestroyWindow(context.window);
 
     context.gpu_device = sdlc.SDL_CreateGPUDevice(sdlc.SDL_GPU_SHADERFORMAT_SPIRV | sdlc.SDL_GPU_SHADERFORMAT_DXIL | sdlc.SDL_GPU_SHADERFORMAT_MSL, true, null) orelse return SDLError.UnableToCreateDevice;
@@ -173,7 +174,7 @@ fn errorHandler(err: anyerror) sdlc.SDL_AppResult {
     if (sdl_error != null and sdl_error[0] != 0) {
         context.log.err("SDL: {s}\n", .{sdl_error});
     }
-    std.debug.dumpCurrentStackTrace(null);
+    std.debug.dumpCurrentStackTrace(.{});
 
     return sdlc.SDL_APP_FAILURE;
 }

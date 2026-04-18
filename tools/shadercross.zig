@@ -1,11 +1,7 @@
 const std = @import("std");
 
-pub fn main() !void {
-    var arena_state = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena_state.deinit();
-    const arena = arena_state.allocator();
-
-    const args = try std.process.argsAlloc(arena);
+pub fn main(init: std.process.Init) !void {
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
     if (args.len < 3) fatal("Calling requires at least 2 args", .{});
 
     const input_file_path = args[1];
@@ -13,9 +9,9 @@ pub fn main() !void {
         var i: usize = 2;
         while (i < args.len) : (i += 1) {
             std.debug.print("Converting input: {s}, to output: {s}\n", .{ input_file_path, args[i] });
-            var child = std.process.Child.init(&[_][]const u8{ "shadercross", input_file_path, "-o", args[i] }, arena);
-            const exit_code = try child.spawnAndWait();
-            if (exit_code.Exited != 0) fatal("Bad run of shaderscross, exit code: {d}", .{exit_code.Exited});
+            const result = try std.process.run(init.arena.allocator(), init.io, .{ .create_no_window = true, .argv = &[_][]const u8{ "shadercross", input_file_path, "-o", args[i] } });
+            std.debug.print("{s}", .{result.stdout});
+            if (result.term.exited != 0) fatal("Shaderscross failed, exit code: {d}, messages {s}", .{ result.term.exited, result.stderr });
         }
     }
 }
