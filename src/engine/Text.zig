@@ -17,8 +17,7 @@ pub const TextAlignment = enum {
 };
 
 /// Where T is the vertex shader struct
-/// TODO: Put this inside of the text struct so on import of text can cover it
-pub fn FontRenderer(comptime T: type) type {
+pub fn Text(comptime T: type) type {
     return struct {
         comptime {
             const info = @typeInfo(T);
@@ -30,35 +29,33 @@ pub fn FontRenderer(comptime T: type) type {
             std.debug.assert(std.meta.fieldInfo(T, .color).type == Color);
         }
 
-        font: *const Font,
-        renderer: InstancedTextureRenderer.InstancedTextureRenderer(T),
+        /// Intended to be created seperately and re-used for any future text of this type
+        pub const Renderer = struct {
+            font: *const Font,
+            renderer: InstancedTextureRenderer.InstancedTextureRenderer(T),
 
-        pub fn init(allocater: std.mem.Allocator, font: *const Font, device: *sdlc.SDL_GPUDevice, texture: *Texture, sampler: *sdlc.SDL_GPUSampler, pipeline: *sdlc.SDL_GPUGraphicsPipeline) !@This() {
-            return .{
-                .font = font,
-                .renderer = try InstancedTextureRenderer.InstancedTextureRenderer(T).init(allocater, device, pipeline, texture, sampler, 1000),
-            };
-        }
+            pub fn init(allocater: std.mem.Allocator, font: *const Font, device: *sdlc.SDL_GPUDevice, texture: *Texture, sampler: *sdlc.SDL_GPUSampler, pipeline: *sdlc.SDL_GPUGraphicsPipeline) !@This() {
+                return .{
+                    .font = font,
+                    .renderer = try InstancedTextureRenderer.InstancedTextureRenderer(T).init(allocater, device, pipeline, texture, sampler, 1000),
+                };
+            }
 
-        pub fn deinit(self: *@This()) void {
-            self.renderer.deinit();
-            self.* = undefined;
-        }
+            pub fn deinit(self: *@This()) void {
+                self.renderer.deinit();
+                self.* = undefined;
+            }
 
-        pub fn copyPass(self: *@This(), copy_pass: *sdlc.SDL_GPUCopyPass) !void {
-            try self.renderer.copyPass(copy_pass);
-        }
+            pub fn copyPass(self: *@This(), copy_pass: *sdlc.SDL_GPUCopyPass) !void {
+                try self.renderer.copyPass(copy_pass);
+            }
 
-        // TODO: Better handling of uniforms, instead of just taking in a required Mat4
-        pub fn renderPass(self: *@This(), cmd_buf: *sdlc.SDL_GPUCommandBuffer, render_pass: *sdlc.SDL_GPURenderPass, projection: Mat4) void {
-            self.renderer.renderPass(cmd_buf, render_pass, projection);
-        }
-    };
-}
+            // TODO: Better handling of uniforms, instead of just taking in a required Mat4
+            pub fn renderPass(self: *@This(), cmd_buf: *sdlc.SDL_GPUCommandBuffer, render_pass: *sdlc.SDL_GPURenderPass, projection: Mat4) void {
+                self.renderer.renderPass(cmd_buf, render_pass, projection);
+            }
+        };
 
-/// Where T is the vertex shader struct
-pub fn Text(comptime T: type) type {
-    return struct {
         const InnerData = struct {
             char: u8,
             pos: Vec2,
@@ -66,7 +63,7 @@ pub fn Text(comptime T: type) type {
         };
 
         allocater: std.mem.Allocator,
-        font_renderer: *FontRenderer(T),
+        font_renderer: *Renderer,
         text: []InnerData,
         scale: Vec2,
         color: Color,
@@ -76,7 +73,7 @@ pub fn Text(comptime T: type) type {
         align_y: TextAlignment,
         is_uploaded: bool,
 
-        pub fn init(allocater: std.mem.Allocator, font_renderer: *FontRenderer(T), string: []const u8, text_size: f32, color: Color) !@This() {
+        pub fn init(allocater: std.mem.Allocator, font_renderer: *Renderer, string: []const u8, text_size: f32, color: Color) !@This() {
             std.debug.assert(string.len > 0);
 
             const scale = font_renderer.font.getScale(text_size);

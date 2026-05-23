@@ -135,6 +135,9 @@ fn init() !sdlc.SDL_AppResult {
     // Asset creation
     try assets.init(context.io, context.gpu_device, &context.audio_device);
 
+    context.text_renderer = try .init(context.gpa, &assets.Fonts.Default, context.gpu_device, &assets.Textures.DefaultFont, context.sampler, context.text_inst_quad_pipeline);
+    context.title = try .init(context.gpa, &context.text_renderer, "Test", assets.Fonts.Default.size, @import("engine").Color.WHITE);
+
     // Finished
     init_complete = true;
     return sdlc.SDL_APP_CONTINUE;
@@ -159,6 +162,8 @@ fn event(e: sdlc.SDL_Event) !sdlc.SDL_AppResult {
 fn quit(_: sdlc.SDL_AppResult) void {
     if (!init_complete) return;
 
+    context.title.deinit();
+    context.text_renderer.deinit();
     assets.deinit();
 
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.tex_quad_pipeline);

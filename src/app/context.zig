@@ -5,6 +5,10 @@ const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
 const Vec2 = @import("engine").Vec2;
 
+const shaders = @import("shaders/shaders.zig");
+
+const Text = @import("engine").Text.Text(shaders.VertInstQuadData);
+
 pub const log = std.log.scoped(.App);
 pub const window_dim = Vec2.init(720, 720);
 
@@ -19,3 +23,10 @@ pub var audio_device: AudioDevice = undefined;
 pub var sampler: *sdlc.SDL_GPUSampler = undefined;
 pub var tex_quad_pipeline: *sdlc.SDL_GPUGraphicsPipeline = undefined;
 pub var text_inst_quad_pipeline: *sdlc.SDL_GPUGraphicsPipeline = undefined;
+
+pub var text_renderer: Text.Renderer = undefined;
+pub var title: Text = undefined;
+
+// TODO: Thinking about to make the asset pipeline more string-hash-map data focused rather than creating variables
+// What else can have a more data focused design as well?
+//  - Strings
