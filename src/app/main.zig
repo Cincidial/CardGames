@@ -1,8 +1,9 @@
 const std = @import("std");
 
-const assets = @import("assets");
+const Font = @import("engine").typography.Font;
 const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
+const Texture = @import("engine").Texture;
 
 const context = @import("context.zig");
 const shaders = @import("shaders/shaders.zig");
@@ -133,10 +134,14 @@ fn init() !sdlc.SDL_AppResult {
     errdefer sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);
 
     // Asset creation
-    try assets.init(context.io, context.gpu_device, &context.audio_device);
+    const path = try std.fs.path.joinZ(context.perm_arena, &.{ sdl.SDL_GetBasePath(), "../assets/fonts/Default.fnt" });
+    context.font = try Font.init(context.io, path);
 
-    context.text_renderer = try .init(context.gpa, &assets.Fonts.Default, context.gpu_device, &assets.Textures.DefaultFont, context.sampler, context.text_inst_quad_pipeline);
-    context.title = try .init(context.gpa, &context.text_renderer, "Test", assets.Fonts.Default.size, @import("engine").Color.WHITE);
+    const p2 = try std.fs.path.joinZ(context.perm_arena, &.{ sdl.SDL_GetBasePath(), "../assets/fonts/DefaultFont.png" });
+    context.font_text = try Texture.init(p2, context.gpu_device);
+
+    context.text_renderer = try .init(context.gpa, &context.font, context.gpu_device, &context.font_text, context.sampler, context.text_inst_quad_pipeline);
+    context.title = try .init(context.gpa, &context.text_renderer, "Test", context.font.size, @import("engine").Color.WHITE);
 
     // Finished
     init_complete = true;
@@ -164,7 +169,6 @@ fn quit(_: sdlc.SDL_AppResult) void {
 
     context.title.deinit();
     context.text_renderer.deinit();
-    assets.deinit();
 
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.tex_quad_pipeline);
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);

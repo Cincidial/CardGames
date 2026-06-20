@@ -14,29 +14,6 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    // Asset gen step
-    const assetgen = b.addExecutable(.{
-        .name = "assetgen",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("tools/assetgen.zig"),
-            .target = b.graph.host,
-        }),
-    });
-    const assetgen_step = b.step("assetgen", "Generate zig code for assets");
-    const assetgen_cmd = b.addRunArtifact(assetgen);
-    assetgen_step.dependOn(&assetgen_cmd.step);
-    assetgen_cmd.addDirectoryArg(b.path(asset_dir_name));
-    assetgen_cmd.has_side_effects = true;
-    const assetgen_file = assetgen_cmd.addOutputFileArg("assets.zig");
-    const assetgen_mod = b.createModule(.{
-        .root_source_file = assetgen_file,
-        .target = target,
-        .optimize = optimize,
-        .imports = &.{
-            .{ .name = "engine", .module = engine_mod },
-        },
-    });
-
     // Create the exe
     const exe = b.addExecutable(.{
         .name = app_name,
@@ -46,7 +23,6 @@ pub fn build(b: *std.Build) !void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "engine", .module = engine_mod },
-                .{ .name = "assets", .module = assetgen_mod },
             },
         }),
     });

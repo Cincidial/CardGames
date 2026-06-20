@@ -1,8 +1,10 @@
 const std = @import("std");
 
 const AudioDevice = @import("engine").AudioDevice;
+const Font = @import("engine").typography.Font;
 const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
+const Texture = @import("engine").Texture;
 const Vec2 = @import("engine").Vec2;
 
 const shaders = @import("shaders/shaders.zig");
@@ -24,6 +26,8 @@ pub var sampler: *sdlc.SDL_GPUSampler = undefined;
 pub var tex_quad_pipeline: *sdlc.SDL_GPUGraphicsPipeline = undefined;
 pub var text_inst_quad_pipeline: *sdlc.SDL_GPUGraphicsPipeline = undefined;
 
+pub var font: Font = undefined;
+pub var font_text: Texture = undefined;
 pub var text_renderer: Text.Renderer = undefined;
 pub var title: Text = undefined;
 
