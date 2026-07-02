@@ -8,6 +8,7 @@ pub const InstancedTextureRenderer = @import("InstancedTextureRenderer.zig");
 pub const Mat4 = @import("math.zig").Mat4;
 pub const PreAllocatedArray = @import("PreAllocatedArray.zig");
 pub const Rect = @import("geometry.zig").Rect;
+pub const ResourceManager = @import("ResourceManager.zig");
 pub const sdl = @import("sdl.zig");
 pub const sdlc = @import("sdlc.zig").sdlc;
 pub const Shader = @import("Shader.zig");

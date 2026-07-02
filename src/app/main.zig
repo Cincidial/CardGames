@@ -1,9 +1,12 @@
 const std = @import("std");
 
 const Font = @import("engine").typography.Font;
+const Mat4 = @import("engine").Mat4;
 const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
+const TextAlignment = @import("engine").Text.TextAlignment;
 const Texture = @import("engine").Texture;
+const Vec2 = @import("engine").Vec2;
 
 const context = @import("context.zig");
 const shaders = @import("shaders/shaders.zig");
@@ -134,14 +137,22 @@ fn init() !sdlc.SDL_AppResult {
     errdefer sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);
 
     // Asset creation
-    const path = try std.fs.path.joinZ(context.perm_arena, &.{ sdl.SDL_GetBasePath(), "../assets/fonts/Default.fnt" });
-    context.font = try Font.init(context.io, path);
+    context.resource_manager = .init(context.io, context.gpa, context.gpu_device, &context.audio_device);
+    context.text_renderer = try .init(
+        context.gpa,
+        try context.resource_manager.getFont("Default.fnt"),
+        context.gpu_device,
+        try context.resource_manager.getTexture("DefaultFont.png"),
+        context.sampler,
+        context.text_inst_quad_pipeline,
+    );
 
-    const p2 = try std.fs.path.joinZ(context.perm_arena, &.{ sdl.SDL_GetBasePath(), "../assets/fonts/DefaultFont.png" });
-    context.font_text = try Texture.init(p2, context.gpu_device);
+    context.title = try .init(context.gpa, &context.text_renderer, "Test", 0, @import("engine").Color.BLACK);
+    context.title.reposition(Vec2.fromUiRatio(context.window_dim, 0.5, 0), TextAlignment.center, TextAlignment.start);
+    try context.title.uploadToGpu();
 
-    context.text_renderer = try .init(context.gpa, &context.font, context.gpu_device, &context.font_text, context.sampler, context.text_inst_quad_pipeline);
-    context.title = try .init(context.gpa, &context.text_renderer, "Test", context.font.size, @import("engine").Color.WHITE);
+    // Projection
+    context.projection = Mat4.orthographic(context.window_dim.x / 2, context.window_dim.x / -2, context.window_dim.y / 2, context.window_dim.y / -2);
 
     // Finished
     init_complete = true;
@@ -149,6 +160,33 @@ fn init() !sdlc.SDL_AppResult {
 }
 
 fn iterate() !sdlc.SDL_AppResult {
+    // Rendering, probably have this in another method if it's larger
+    const cmd_buf = sdlc.SDL_AcquireGPUCommandBuffer(context.gpu_device) orelse return SDLError.UnableToAquireCmdBuf;
+
+    var swapchain_tex: ?*sdlc.SDL_GPUTexture = undefined;
+    if (!sdlc.SDL_WaitAndAcquireGPUSwapchainTexture(cmd_buf, context.window, &swapchain_tex, null, null)) return SDLError.UnableToAquireSwapChain;
+
+    if (swapchain_tex) |tex| {
+        const colorTargetInfo = sdlc.SDL_GPUColorTargetInfo{
+            .texture = tex,
+            .clear_color = sdlc.SDL_FColor{ .r = 0.4, .g = 0.6, .b = 0.9, .a = 1.0 },
+            .load_op = sdlc.SDL_GPU_LOADOP_CLEAR,
+            .store_op = sdlc.SDL_GPU_STOREOP_STORE,
+        };
+        const cpy_pass = sdlc.SDL_BeginGPUCopyPass(cmd_buf).?;
+        {
+            try context.text_renderer.copyPass(cpy_pass);
+        }
+        sdlc.SDL_EndGPUCopyPass(cpy_pass);
+
+        const render_pass = sdlc.SDL_BeginGPURenderPass(cmd_buf, &colorTargetInfo, 1, null).?;
+        {
+            context.text_renderer.renderPass(cmd_buf, render_pass, context.projection);
+        }
+        sdlc.SDL_EndGPURenderPass(render_pass);
+    }
+    if (!sdlc.SDL_SubmitGPUCommandBuffer(cmd_buf)) return SDLError.UnableToSubmitGPUCmdBuf;
+
     return sdlc.SDL_APP_CONTINUE;
 }
 
@@ -169,6 +207,7 @@ fn quit(_: sdlc.SDL_AppResult) void {
 
     context.title.deinit();
     context.text_renderer.deinit();
+    context.resource_manager.deinit();
 
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.tex_quad_pipeline);
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);

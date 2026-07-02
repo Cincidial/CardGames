@@ -125,6 +125,8 @@ pub const Font = struct {
         return font;
     }
 
+    pub fn deinit(_: *@This()) void {} // No OP, but allows users to deinit and to not worry about future changes
+
     pub fn dimensions(self: *const Font) Vec2 {
         return Vec2.init(self.size, self.size);
     }

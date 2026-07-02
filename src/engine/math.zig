@@ -21,6 +21,11 @@ pub const Vec2 = extern struct {
         };
     }
 
+    /// Gets the ui coordinate based on a fraction of the window, with the top left being (0,0)
+    pub fn fromUiRatio(window_dim: Vec2, x: f32, y: f32) Vec2 {
+        return Vec2.init(((x * 2.0) - 1.0) * (window_dim.x / 2.0), (1.0 - (y * 2.0)) * (window_dim.y / 2.0));
+    }
+
     pub inline fn negate(self: *const Vec2) Vec2 {
         return .init(-self.x, -self.y);
     }

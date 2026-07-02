@@ -73,10 +73,11 @@ pub fn Text(comptime T: type) type {
         align_y: TextAlignment,
         is_uploaded: bool,
 
+        /// Setting a size of 0 or less will use the fonts natural size
         pub fn init(allocater: std.mem.Allocator, font_renderer: *Renderer, string: []const u8, text_size: f32, color: Color) !@This() {
             std.debug.assert(string.len > 0);
 
-            const scale = font_renderer.font.getScale(text_size);
+            const scale = font_renderer.font.getScale(if (text_size <= 0) font_renderer.font.size else text_size);
             var cursor = Vec2.init(0, font_renderer.font.scaledLineHeight(scale));
             var text = try allocater.alloc(InnerData, string.len);
             var top: f32 = std.math.floatMin(f32);
@@ -117,11 +118,7 @@ pub fn Text(comptime T: type) type {
         }
 
         pub fn deinit(self: *@This()) void {
-            if (self.is_uploaded) {
-                for (self.text) |*value| {
-                    value.draw_data.removeFromArray();
-                }
-            }
+            self.removeFromGpu();
             self.allocater.free(self.text);
             self.* = undefined;
         }
