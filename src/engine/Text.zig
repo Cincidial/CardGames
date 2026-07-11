@@ -9,6 +9,7 @@ const Rect = @import("root.zig").Rect;
 const sdlc = @import("root.zig").sdlc;
 const Texture = @import("root.zig").Texture;
 const Vec2 = @import("root.zig").Vec2;
+const Vec3 = @import("root.zig").Vec3;
 
 pub const TextAlignment = enum {
     start, // Left for x, top for y
@@ -24,9 +25,9 @@ pub fn Text(comptime T: type) type {
             std.debug.assert(info == .@"struct");
             std.debug.assert(std.meta.fieldInfo(T, .tex_coord).type == Vec2);
             std.debug.assert(std.meta.fieldInfo(T, .tex_dim).type == Vec2);
-            std.debug.assert(std.meta.fieldInfo(T, .pos).type == Vec2);
-            std.debug.assert(std.meta.fieldInfo(T, .scale).type == Vec2);
+            std.debug.assert(std.meta.fieldInfo(T, .pos).type == Vec3);
             std.debug.assert(std.meta.fieldInfo(T, .color).type == Color);
+            std.debug.assert(std.meta.fieldInfo(T, .scale).type == Vec2);
         }
 
         /// Intended to be created seperately and re-used for any future text of this type
@@ -58,7 +59,7 @@ pub fn Text(comptime T: type) type {
 
         const InnerData = struct {
             char: u8,
-            pos: Vec2,
+            pos: Vec3,
             draw_data: InstancedTextureRenderer.InstancedTextureRenderer(T).InstanceArrayElementType,
         };
 
@@ -78,7 +79,7 @@ pub fn Text(comptime T: type) type {
             std.debug.assert(string.len > 0);
 
             const scale = font_renderer.font.getScale(if (text_size <= 0) font_renderer.font.size else text_size);
-            var cursor = Vec2.init(0, font_renderer.font.scaledLineHeight(scale));
+            var cursor = Vec3.init(0, font_renderer.font.scaledLineHeight(scale), 0);
             var text = try allocater.alloc(InnerData, string.len);
             var top: f32 = std.math.floatMin(f32);
             var bottom: f32 = std.math.floatMax(f32);
@@ -88,11 +89,11 @@ pub fn Text(comptime T: type) type {
 
                 const glyph = font_renderer.font.glyphs[c];
                 text[i].char = c;
-                text[i].pos = cursor.subY(glyph.scaledDim(scale).y).add(glyph.offset(scale));
+                text[i].pos = cursor.subY(glyph.scaledDim(scale).y).addVec2(glyph.offset(scale));
 
                 top = @max(top, text[i].pos.addY(glyph.scaledDim(scale).y).y);
                 bottom = @min(bottom, text[i].pos.y);
-                cursor = cursor.add(glyph.cursorAdvance(scale));
+                cursor = cursor.addVec2(glyph.cursorAdvance(scale));
             }
             const left = text[0].pos.x;
             const right = text[text.len - 1].pos.x + font_renderer.font.glyphs[text[text.len - 1].char].scaledDim(scale).x;
@@ -100,7 +101,7 @@ pub fn Text(comptime T: type) type {
 
             // Translate to handle the offset from the glyphs so we are back to "start" alignment
             for (text) |*value| {
-                value.pos = value.pos.sub(rect.topLeft());
+                value.pos = value.pos.subVec2(rect.topLeft());
             }
 
             return .{
@@ -156,7 +157,7 @@ pub fn Text(comptime T: type) type {
             self.bounds = self.bounds.translate(translation);
 
             for (self.text) |*value| {
-                value.pos = value.pos.add(translation);
+                value.pos = value.pos.addVec2(translation);
 
                 if (self.is_uploaded) {
                     value.draw_data.data.?.pos = value.pos;

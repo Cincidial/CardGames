@@ -83,6 +83,91 @@ pub const Vec2 = extern struct {
     }
 };
 
+pub const Vec3 = extern struct {
+    pub const ZERO: Vec3 = .{ .x = 0, .y = 0, .z = 0 };
+
+    x: f32,
+    y: f32,
+    z: f32,
+
+    pub fn init(x: f32, y: f32, z: f32) Vec3 {
+        return .{ .x = x, .y = y, .z = z };
+    }
+
+    pub fn vertexAttribute(buffer_slot: u32, location_start: u32, offset: u32) sdlc.SDL_GPUVertexAttribute {
+        return .{
+            .location = location_start,
+            .buffer_slot = buffer_slot,
+            .format = sdlc.SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+            .offset = offset,
+        };
+    }
+
+    pub inline fn negate(self: *const Vec3) Vec3 {
+        return .init(-self.x, -self.y, -self.z);
+    }
+
+    pub inline fn newX(vec3: Vec3, value: f32) Vec3 {
+        return .{ .x = value, .y = vec3.y, .z = vec3.z };
+    }
+
+    pub inline fn newY(vec3: Vec3, value: f32) Vec3 {
+        return .{ .x = vec3.x, .y = value, .z = vec3.z };
+    }
+
+    pub inline fn addX(vec3: Vec3, scalar: f32) Vec3 {
+        return .{ .x = vec3.x + scalar, .y = vec3.y, .z = vec3.z };
+    }
+
+    pub inline fn addY(vec3: Vec3, scalar: f32) Vec3 {
+        return .{ .x = vec3.x, .y = vec3.y + scalar, .z = vec3.z };
+    }
+
+    pub inline fn addVec2(l: Vec3, r: Vec2) Vec3 {
+        return .{ .x = l.x + r.x, .y = l.y + r.y, .z = l.z };
+    }
+
+    pub inline fn add(l: Vec3, r: Vec3) Vec3 {
+        return .{ .x = l.x + r.x, .y = l.y + r.y, .z = l.z + r.z };
+    }
+
+    pub inline fn subX(vec3: Vec3, scalar: f32) Vec3 {
+        return .{ .x = vec3.x - scalar, .y = vec3.y, .z = vec3.z };
+    }
+
+    pub inline fn subY(vec3: Vec3, scalar: f32) Vec3 {
+        return .{ .x = vec3.x, .y = vec3.y - scalar, .z = vec3.z };
+    }
+
+    pub inline fn subVec2(l: Vec3, r: Vec2) Vec3 {
+        return .{ .x = l.x - r.x, .y = l.y - r.y, .z = l.z };
+    }
+
+    pub inline fn sub(l: Vec3, r: Vec3) Vec3 {
+        return .{ .x = l.x - r.x, .y = l.y - r.y, .z = l.z - r.z };
+    }
+
+    pub inline fn multScalar(vec3: Vec3, scalar: f32) Vec3 {
+        return .{ .x = vec3.x * scalar, .y = vec3.y * scalar, .z = vec3.z * scalar };
+    }
+
+    pub inline fn div(l: Vec3, r: Vec3) Vec3 {
+        return .{ .x = l.x / r.x, .y = l.y / r.y, .z = l.z / r.z };
+    }
+
+    pub inline fn divScalar(vec3: Vec3, scalar: f32) Vec3 {
+        return .{ .x = vec3.x / scalar, .y = vec3.y / scalar, .z = vec3.z / scalar };
+    }
+
+    pub inline fn uniformBind(self: *const Vec3, cmd_buf: *sdlc.SDL_GPUCommandBuffer, slot_index: u32) void {
+        sdlc.SDL_PushGPUVertexUniformData(cmd_buf, slot_index, @ptrCast(self), @sizeOf(@This()));
+    }
+
+    pub fn print(self: Vec3) void {
+        std.debug.print("({d}, {d}, {d})\n", .{ self.x, self.y, self.z });
+    }
+};
+
 /// SDL GPU API is Col-Major
 /// Default values are the identity matrix
 pub const Mat4 = extern struct {

@@ -10,9 +10,11 @@ cbuffer UniformBlock : register(b1, space1)
 struct InstanceData {
     float2 tex_coord; // The pixel values
     float2 tex_dimensions; // The pixel values
-    float2 position;
-    float2 scale;
+    float3 position;
+    float padding; // Padding added for spec (float3/4 must start on 16-byte alignment), can later be replaced with rotation
     float4 color;
+    float2 scale;
+    float2 padding2; // Each instance needs to start on a 16-byte alignment, so add padding to do so
 };
 StructuredBuffer<InstanceData> DataBuffer: register(t0, space0);
 
@@ -39,7 +41,7 @@ Output main(uint id : SV_VertexID) {
     Output output;
     output.tex_coord = float2(inst.tex_coord.x + (vertex_x * inst.tex_dimensions.x), inst.tex_coord.y + (vertex_y * inst.tex_dimensions.y)) / atlas_dimensions;
     output.color = inst.color;
-    output.position = mul(projection, float4(quad_vertex + inst.position, 0, 1.0f));
+    output.position = mul(projection, float4(quad_vertex.x + inst.position.x, quad_vertex.y + inst.position.y, inst.position.z, 1.0f));
 
     return output;
 }

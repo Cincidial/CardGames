@@ -16,6 +16,7 @@ pub const Text = @import("Text.zig");
 pub const Texture = @import("Texture.zig");
 pub const typography = @import("typography.zig");
 pub const Vec2 = @import("math.zig").Vec2;
+pub const Vec3 = @import("math.zig").Vec3;
 pub const VertexBuffer = @import("VertexBuffer.zig");
 pub const VertexRenderer = @import("VertexRenderer.zig");
 
