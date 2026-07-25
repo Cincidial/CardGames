@@ -53,9 +53,8 @@ pub fn build(b: *std.Build) !void {
             .target = b.graph.host,
         }),
     });
-    try addShadercrossFile(b, shadercross, engine_mod, "texQuad.vert");
-    try addShadercrossFile(b, shadercross, engine_mod, "texInstQuad.vert");
-    try addShadercrossFile(b, shadercross, engine_mod, "texQuad.frag");
+    try addShadercrossFile(b, shadercross, engine_mod, "text.vert");
+    try addShadercrossFile(b, shadercross, engine_mod, "text.frag");
 
     // Run step
     const run_step = b.step("run", "Run the app");

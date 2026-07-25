@@ -1,6 +1,12 @@
 const std = @import("std");
 
 const sdlc = @import("root.zig").sdlc;
+const Texture = @import("root.zig").Texture;
+
+pub const TextureSamplerBinding = struct {
+    texture: *Texture,
+    binding: sdlc.SDL_GPUTextureSamplerBinding,
+};
 
 const App = struct {
     init: *const fn () anyerror!sdlc.SDL_AppResult,

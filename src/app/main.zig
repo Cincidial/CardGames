@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const Color = @import("engine").Color;
 const Font = @import("engine").typography.Font;
 const Mat4 = @import("engine").Mat4;
 const sdl = @import("engine").sdl;
@@ -10,7 +11,6 @@ const Vec2 = @import("engine").Vec2;
 
 const context = @import("context.zig");
 const shaders = @import("shaders/shaders.zig");
-const vertices = @import("vertices.zig");
 
 const SDLError = error{
     UnableToInit,
@@ -70,14 +70,11 @@ fn init() !sdlc.SDL_AppResult {
     errdefer sdlc.SDL_ReleaseGPUSampler(context.gpu_device, context.sampler);
 
     // Shader creation
-    const vert_tex_quad_shader = try shaders.VertTexQuad.createShader(context.gpu_device, 0, 1, 0, 0);
-    defer sdlc.SDL_ReleaseGPUShader(context.gpu_device, vert_tex_quad_shader);
+    const vert_text_shader = try shaders.VertText.createShader(context.gpu_device, 0, 2, 1, 0);
+    defer sdlc.SDL_ReleaseGPUShader(context.gpu_device, vert_text_shader);
 
-    const vert_tex_inst_quad_shader = try shaders.VertTexInstQuad.createShader(context.gpu_device, 0, 2, 1, 0);
-    defer sdlc.SDL_ReleaseGPUShader(context.gpu_device, vert_tex_inst_quad_shader);
-
-    const frag_tex_quad_shader = try shaders.FragTexQuad.createShader(context.gpu_device, 1, 0, 0, 0);
-    defer sdlc.SDL_ReleaseGPUShader(context.gpu_device, frag_tex_quad_shader);
+    const frag_text_shader = try shaders.FragText.createShader(context.gpu_device, 1, 0, 0, 0);
+    defer sdlc.SDL_ReleaseGPUShader(context.gpu_device, frag_text_shader);
 
     // Pipeline creation
     const standard_rasterizer_state = sdlc.SDL_GPURasterizerState{
@@ -104,52 +101,39 @@ fn init() !sdlc.SDL_AppResult {
         .num_color_targets = standard_blending_color_target_descs.len,
     };
 
-    const tex_vert_buffer_descs: [1]sdlc.SDL_GPUVertexBufferDescription = .{sdlc.SDL_GPUVertexBufferDescription{
-        .slot = 0,
-        .pitch = @sizeOf(vertices.TexVertex),
-        .input_rate = sdlc.SDL_GPU_VERTEXINPUTRATE_VERTEX,
-        .instance_step_rate = 0,
-    }};
-    const tex_vert_attributes = vertices.TexVertex.vertexAttributes(tex_vert_buffer_descs[0].slot);
-
-    context.tex_quad_pipeline = sdlc.SDL_CreateGPUGraphicsPipeline(context.gpu_device, &sdlc.SDL_GPUGraphicsPipelineCreateInfo{
-        .vertex_shader = vert_tex_quad_shader,
-        .fragment_shader = frag_tex_quad_shader,
-        .vertex_input_state = sdlc.SDL_GPUVertexInputState{
-            .vertex_buffer_descriptions = &tex_vert_buffer_descs,
-            .num_vertex_buffers = tex_vert_buffer_descs.len,
-            .vertex_attributes = &tex_vert_attributes,
-            .num_vertex_attributes = tex_vert_attributes.len,
-        },
+    context.text_pipeline = sdlc.SDL_CreateGPUGraphicsPipeline(context.gpu_device, &sdlc.SDL_GPUGraphicsPipelineCreateInfo{
+        .vertex_shader = vert_text_shader,
+        .fragment_shader = frag_text_shader,
         .primitive_type = sdlc.SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
         .rasterizer_state = standard_rasterizer_state,
         .target_info = pipeline_standard_blending_target_info,
     }) orelse return SDLError.UnableToCreatePipeline;
-    errdefer sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.tex_quad_pipeline);
-
-    context.text_inst_quad_pipeline = sdlc.SDL_CreateGPUGraphicsPipeline(context.gpu_device, &sdlc.SDL_GPUGraphicsPipelineCreateInfo{
-        .vertex_shader = vert_tex_inst_quad_shader,
-        .fragment_shader = frag_tex_quad_shader,
-        .primitive_type = sdlc.SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-        .rasterizer_state = standard_rasterizer_state,
-        .target_info = pipeline_standard_blending_target_info,
-    }) orelse return SDLError.UnableToCreatePipeline;
-    errdefer sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);
+    errdefer sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_pipeline);
 
     // Asset creation
     context.resource_manager = .init(context.io, context.gpa, context.gpu_device, &context.audio_device);
-    context.text_renderer = try .init(
-        context.gpa,
-        try context.resource_manager.getFont("Default.fnt"),
-        context.gpu_device,
-        try context.resource_manager.getTexture("DefaultFont.png"),
-        context.sampler,
-        context.text_inst_quad_pipeline,
-    );
+    context.text_render_context = .{
+        .allocater = context.gpa,
+        .font = try context.resource_manager.getFont("Default.fnt"),
+        .device = context.gpu_device,
+        .texture_sampler = .{
+            .texture = try context.resource_manager.getTexture("DefaultFont.png"),
+            .binding = .{
+                .texture = (try context.resource_manager.getTexture("DefaultFont.png")).gpu_texture,
+                .sampler = context.sampler,
+            },
+        },
+        .pipeline = context.text_pipeline,
+    };
 
-    context.title = try .init(context.gpa, &context.text_renderer, "Test", 0, @import("engine").Color.BLACK);
-    context.title.reposition(Vec2.fromUiRatio(context.window_dim, 0.5, 0), TextAlignment.center, TextAlignment.start);
-    try context.title.uploadToGpu();
+    context.title = try .init(.{
+        .context = context.text_render_context,
+        .color = Color.GREEN,
+        .outline_stroke_size = 4,
+        .outline_color = Color.BLACK,
+        .anchor = Vec2.fromUiRatio(context.window_dim, 0.5, 0.5),
+        .align_x = TextAlignment.center,
+    }, "TAae");
 
     // Projection
     context.projection = Mat4.orthographic(context.window_dim.x / 2, context.window_dim.x / -2, context.window_dim.y / 2, context.window_dim.y / -2);
@@ -175,13 +159,13 @@ fn iterate() !sdlc.SDL_AppResult {
         };
         const cpy_pass = sdlc.SDL_BeginGPUCopyPass(cmd_buf).?;
         {
-            try context.text_renderer.copyPass(cpy_pass);
+            try context.title.copyPass(cpy_pass);
         }
         sdlc.SDL_EndGPUCopyPass(cpy_pass);
 
         const render_pass = sdlc.SDL_BeginGPURenderPass(cmd_buf, &colorTargetInfo, 1, null).?;
         {
-            context.text_renderer.renderPass(cmd_buf, render_pass, context.projection);
+            context.title.renderPass(cmd_buf, render_pass, context.projection);
         }
         sdlc.SDL_EndGPURenderPass(render_pass);
     }
@@ -206,11 +190,9 @@ fn quit(_: sdlc.SDL_AppResult) void {
     if (!init_complete) return;
 
     context.title.deinit();
-    context.text_renderer.deinit();
     context.resource_manager.deinit();
 
-    sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.tex_quad_pipeline);
-    sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_inst_quad_pipeline);
+    sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_pipeline);
     sdlc.SDL_ReleaseGPUSampler(context.gpu_device, context.sampler);
 
     context.audio_device.deinit();

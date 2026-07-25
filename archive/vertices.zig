@@ -19,3 +19,11 @@ pub const TexVertex = extern struct {
         };
     }
 };
+
+const tex_vert_buffer_descs: [1]sdlc.SDL_GPUVertexBufferDescription = .{sdlc.SDL_GPUVertexBufferDescription{
+    .slot = 0,
+    .pitch = @sizeOf(vertices.TexVertex),
+    .input_rate = sdlc.SDL_GPU_VERTEXINPUTRATE_VERTEX,
+    .instance_step_rate = 0,
+}};
+const tex_vert_attributes = vertices.TexVertex.vertexAttributes(tex_vert_buffer_descs[0].slot);

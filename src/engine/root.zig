@@ -14,6 +14,7 @@ pub const sdlc = @import("sdlc.zig").sdlc;
 pub const Shader = @import("Shader.zig");
 pub const Text = @import("Text.zig");
 pub const Texture = @import("Texture.zig");
+pub const TextureSamplerBinding = @import("sdl.zig").TextureSamplerBinding;
 pub const typography = @import("typography.zig");
 pub const Vec2 = @import("math.zig").Vec2;
 pub const Vec3 = @import("math.zig").Vec3;

@@ -12,8 +12,8 @@ pub fn main(init: std.process.Init) !void {
             const result = try std.process.run(init.arena.allocator(), init.io, .{ .create_no_window = true, .argv = &[_][]const u8{ "shadercross", input_file_path, "-o", args[i] } });
             std.debug.print("{s}", .{result.stdout});
             switch (result.term) {
-                .exited => |val| if (val != 0) fatal("Shaderscross failed, exit code: {d}, messages {s}", .{ val, result.stderr }),
-                .signal => |sig| std.debug.print("Process was terminated by signal {d}\n", .{sig}),
+                .exited => |val| if (val != 0) fatal("Shaderscross failed, exit code: {d}, messages {s}\n", .{ val, result.stderr }),
+                .signal => |sig| std.debug.print("Process was terminated by signal {d}, messages {s}\n", .{ sig, result.stderr }),
                 .stopped, .unknown => std.debug.print("Process was stopped or unkown", .{}),
             }
         }
