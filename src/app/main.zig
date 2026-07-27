@@ -128,12 +128,12 @@ fn init() !sdlc.SDL_AppResult {
 
     context.title = try .init(.{
         .context = context.text_render_context,
+        .text_size = 36,
         .color = Color.GREEN,
-        .outline_stroke_size = 4,
         .outline_color = Color.BLACK,
         .anchor = Vec2.fromUiRatio(context.window_dim, 0.5, 0.5),
         .align_x = TextAlignment.center,
-    }, "TAae");
+    }, "The quick brown fox Jumped Over ThE LAZY DOG!");
 
     // Projection
     context.projection = Mat4.orthographic(context.window_dim.x / 2, context.window_dim.x / -2, context.window_dim.y / 2, context.window_dim.y / -2);

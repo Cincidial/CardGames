@@ -36,7 +36,6 @@ pub fn Text(comptime T: type) type {
             std.debug.assert(std.meta.fieldInfo(T, .tex_coord).type == Vec2);
             std.debug.assert(std.meta.fieldInfo(T, .tex_dim).type == Vec2);
             std.debug.assert(std.meta.fieldInfo(T, .pos).type == Vec3);
-            std.debug.assert(std.meta.fieldInfo(T, .outline_stroke).type == f32);
             std.debug.assert(std.meta.fieldInfo(T, .color).type == Color);
             std.debug.assert(std.meta.fieldInfo(T, .outline_color).type == Color);
             std.debug.assert(std.meta.fieldInfo(T, .scale).type == Vec2);
@@ -49,7 +48,6 @@ pub fn Text(comptime T: type) type {
             anchor: Vec2 = .ZERO,
             align_x: TextAlignment = .start,
             align_y: TextAlignment = .start,
-            outline_stroke_size: u8 = 0,
             outline_color: Color = Color.TRANSPARENT,
         };
 
@@ -63,11 +61,8 @@ pub fn Text(comptime T: type) type {
             std.debug.assert(string.len > 0);
 
             const text_size = if (data.text_size <= 0) data.context.font.size else data.text_size;
-            const outline_size = if (data.outline_stroke_size == 0) 0 else text_size + data.outline_stroke_size;
-            const text_scale = data.context.font.getScale(text_size);
-            const text_scale_vec = Vec2.init(text_scale, text_scale);
-            const outline_scale = data.context.font.getScale(outline_size);
-            const scale = if (outline_scale == 0) text_scale else outline_scale;
+            const scale = data.context.font.getScale(text_size);
+            const scale_vec = Vec2.init(scale, scale);
 
             var gpu_buffer = try DataBuffer.init(data.context.device, string.len * @sizeOf(T));
             errdefer gpu_buffer.deinit();
@@ -86,17 +81,16 @@ pub fn Text(comptime T: type) type {
                 text[i].tex_coord = glyph.tex_coord();
                 text[i].tex_dim = glyph.tex_dimen();
                 text[i].pos = cursor.subY(glyph.scaledDim(scale).y).addVec2(glyph.offset(scale));
-                text[i].outline_stroke = data.outline_stroke_size;
                 text[i].color = data.color;
                 text[i].outline_color = data.outline_color;
-                text[i].scale = text_scale_vec;
+                text[i].scale = scale_vec;
 
-                top = @max(top, text[i].pos.addY(glyph.scaledDim(scale).y).y);
+                top = @max(top, text[i].pos.addY(glyph.scaledDim(scale).y).y); // Don't undo the offset change as we want the value to the top of the character, not the cursor start
                 bottom = @min(bottom, text[i].pos.y);
                 cursor = cursor.addVec2(glyph.cursorAdvance(scale));
             }
             const left = text[0].pos.x;
-            const right = text[text.len - 1].pos.x + data.context.font.glyphs[string[string.len - 1]].scaledDim(scale).x;
+            const right = text[text.len - 1].pos.x + data.context.font.glyphs[string[string.len - 1]].scaledDim(scale).x; // Same here, we just want the right side of the char, so keep the offset
             const rect = Rect.init(left, top, right, bottom);
 
             // Translate to handle the offset (x) from the first glyph so we are back to "start" alignment
@@ -185,7 +179,7 @@ pub fn Text(comptime T: type) type {
             sdlc.SDL_BindGPUFragmentSamplers(render_pass, 0, &self.data.context.texture_sampler.binding, 1);
             projection.uniformBind(cmd_buf, 0);
             self.data.context.texture_sampler.texture.dimensions.uniformBind(cmd_buf, 1);
-            sdlc.SDL_DrawGPUPrimitives(render_pass, @intCast(6 * self.text.len), 1, 0, 0); // 6 primitives to form a quad per instance
+            sdlc.SDL_DrawGPUPrimitives(render_pass, @intCast(6 * self.text.len), 1, 0, 0); // 6 primitives to form a quad per instance. TODO: create a function in sdl.zig for this logic
         }
     };
 }

@@ -11,7 +11,7 @@ pub const VertexTextData = extern struct {
     tex_coord: Vec2,
     tex_dim: Vec2,
     pos: Vec3,
-    outline_stroke: f32 = 0,
+    padding1: f32 = 0,
     color: Color,
     outline_color: Color,
     scale: Vec2,
