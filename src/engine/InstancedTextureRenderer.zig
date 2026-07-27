@@ -1,4 +1,4 @@
-const Allocater = @import("std").mem.Allocator;
+const Allocator = @import("std").mem.Allocator;
 
 const DataBuffer = @import("root.zig").DataBuffer;
 const Mat4 = @import("root.zig").Mat4;
@@ -18,15 +18,15 @@ pub fn InstancedTextureRenderer(comptime T: type) type {
         gpu_data_buffer: DataBuffer,
         instances: InstanceArrayType,
 
-        /// The allocater is passed through to the underlying PreAllocatedArray
-        pub fn init(allocater: Allocater, device: *sdlc.SDL_GPUDevice, pipeline: *sdlc.SDL_GPUGraphicsPipeline, texture: *Texture, sampler: *sdlc.SDL_GPUSampler, max_instances: usize) !@This() {
+        /// The allocator is passed through to the underlying PreAllocatedArray
+        pub fn init(allocator: Allocator, device: *sdlc.SDL_GPUDevice, pipeline: *sdlc.SDL_GPUGraphicsPipeline, texture: *Texture, sampler: *sdlc.SDL_GPUSampler, max_instances: usize) !@This() {
             return .{
                 .device = device,
                 .pipeline = pipeline,
                 .texture = texture,
                 .sampler = sampler,
                 .gpu_data_buffer = try DataBuffer.init(device, max_instances * @sizeOf(T)),
-                .instances = try InstanceArrayType.init(allocater, max_instances),
+                .instances = try InstanceArrayType.init(allocator, max_instances),
             };
         }
 

@@ -1,4 +1,4 @@
-const Allocater = @import("std").mem.Allocator;
+const Allocator = @import("std").mem.Allocator;
 
 pub const PreAllocatedArrayError = error{
     OutOfMemory,
@@ -28,8 +28,8 @@ pub fn PreAllocatedArray(comptime T: type) type {
             }
         };
 
-        /// The allocater is used to generate the initial arrays only. It does not own the ElementWrappers
-        allocater: Allocater,
+        /// The allocator is used to generate the initial arrays only. It does not own the ElementWrappers
+        allocator: Allocator,
         /// The data
         array_data: []T,
         /// Use pointers
@@ -39,12 +39,12 @@ pub fn PreAllocatedArray(comptime T: type) type {
         /// Flag that gets set to true on any additions or removals.
         has_changes: bool,
 
-        pub fn init(allocater: Allocater, max_elements: usize) !@This() {
-            const data_ptr = try allocater.alloc(T, max_elements);
-            const wrappers_ptr = try allocater.alloc(*ElementWrapper, max_elements);
+        pub fn init(allocator: Allocator, max_elements: usize) !@This() {
+            const data_ptr = try allocator.alloc(T, max_elements);
+            const wrappers_ptr = try allocator.alloc(*ElementWrapper, max_elements);
 
             return .{
-                .allocater = allocater,
+                .allocator = allocator,
                 .array_data = data_ptr,
                 .array_ptrs = wrappers_ptr,
                 .in_use_size = 0,
@@ -53,8 +53,8 @@ pub fn PreAllocatedArray(comptime T: type) type {
         }
 
         pub fn deinit(self: *@This()) void {
-            self.allocater.free(self.array_data);
-            self.allocater.free(self.array_ptrs);
+            self.allocator.free(self.array_data);
+            self.allocator.free(self.array_ptrs);
             self.* = undefined;
         }
 

@@ -113,7 +113,7 @@ fn init() !sdlc.SDL_AppResult {
     // Asset creation
     context.resource_manager = .init(context.io, context.gpa, context.gpu_device, &context.audio_device);
     context.text_render_context = .{
-        .allocater = context.gpa,
+        .allocator = context.gpa,
         .font = try context.resource_manager.getFont("Default.fnt"),
         .device = context.gpu_device,
         .texture_sampler = .{

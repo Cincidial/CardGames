@@ -20,7 +20,7 @@ pub const TextAlignment = enum {
 
 // Data that may be commonly used to render text
 pub const TextRenderContext = struct {
-    allocater: std.mem.Allocator,
+    allocator: std.mem.Allocator,
     device: *sdlc.SDL_GPUDevice,
     pipeline: *sdlc.SDL_GPUGraphicsPipeline,
     texture_sampler: TextureSamplerBinding,
@@ -67,8 +67,8 @@ pub fn Text(comptime T: type) type {
             var gpu_buffer = try DataBuffer.init(data.context.device, string.len * @sizeOf(T));
             errdefer gpu_buffer.deinit();
 
-            var text = try data.context.allocater.alloc(T, string.len);
-            errdefer data.context.allocater.free(text);
+            var text = try data.context.allocator.alloc(T, string.len);
+            errdefer data.context.allocator.free(text);
 
             var cursor = Vec3.init(0, data.context.font.scaledLineHeight(scale), 0);
             var top: f32 = std.math.floatMin(f32);
@@ -116,7 +116,7 @@ pub fn Text(comptime T: type) type {
         }
 
         pub fn deinit(self: *@This()) void {
-            self.data.context.allocater.free(self.text);
+            self.data.context.allocator.free(self.text);
             self.gpu_data_buffer.deinit();
             self.* = undefined;
         }
