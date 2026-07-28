@@ -13,23 +13,18 @@ struct FragData {
 static const int outline_size = 1;
 float4 main(FragData data): SV_Target0 {
     float4 sample = tex.Sample(samp, data.tex_coord);
-    if (data.outline_color.a != 0 && sample.a == 0) {
+    if (data.outline_color.a != 0 && sample.a <= 0.5) {
         for (int x = -outline_size; x <= outline_size; x++) {
-            float test_x = data.tex_coord.x + (data.texel_size.x * x);
-            test_x = clamp(test_x, data.tex_bounds[0], data.tex_bounds[2]);
-
             for (int y = -outline_size; y <= outline_size; y++) {
-                float test_y = data.tex_coord.y + (data.texel_size.y * y);
-                test_y = clamp(test_y, data.tex_bounds[1], data.tex_bounds[3]);
+                if (x == 0 && y == 0) continue;
 
-                float4 test_sample = tex.Sample(samp, float2(test_x, test_y));
-                if (test_sample.a != 0) {
-                    return data.outline_color;
-                }
+                float2 test_coords = (float2(x, y) * data.texel_size) + data.tex_coord;
+                test_coords = clamp(test_coords, data.tex_bounds.xy, data.tex_bounds.zw);
+                float4 test_sample = tex.Sample(samp, test_coords);
+
+                if (test_sample.a > 0.5) return data.outline_color;
             }
         }
-
-        return sample;
     }
 
     return float4(sample.rgb + data.color.rgb, sample.a * data.color.a);
