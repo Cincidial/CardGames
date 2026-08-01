@@ -50,8 +50,12 @@ pub const Glyph = struct {
     }
 };
 
+const FontFileTags = enum { info, common, page, chars, char, kerning };
+const FontFileProps = enum { size, padding, line_height, base, scaleW, scaleH, id, x, y, width, height, xoffset, yoffset, xadvance };
+
 pub const Font = struct {
     size: f32 = 0,
+    padding: f32 = 0,
     scale_w: f32 = 0, // Atlas width
     scale_h: f32 = 0, // Atlas height
     line_height: f32 = 0, // y-distance between new lines
@@ -78,12 +82,16 @@ pub const Font = struct {
                 const prop_type = std.meta.stringToEnum(FontFileProps, prop_type_string) orelse continue;
 
                 const value_string = prop_it.next() orelse return TypographyError.FontFilePropMissingValue;
-                const value: i32 = try std.fmt.parseInt(i32, value_string, 10);
+                const value: i32 = switch (prop_type) {
+                    .padding => try std.fmt.parseInt(i32, value_string[0..1], 10),
+                    else => try std.fmt.parseInt(i32, value_string, 10),
+                };
 
                 switch (tag) {
                     .info => {
                         switch (prop_type) {
                             .size => font.size = @floatFromInt(value),
+                            .padding => font.padding = @floatFromInt(value),
                             else => {},
                         }
                     },
@@ -140,13 +148,14 @@ pub const Font = struct {
     }
 };
 
-const FontFileTags = enum { info, common, page, chars, char, kerning };
-const FontFileProps = enum { size, line_height, base, scaleW, scaleH, id, x, y, width, height, xoffset, yoffset, xadvance };
-
 test "Parse Test Font File" {
+    const io: std.Io = std.testing.io;
+    var cwd = std.Io.Dir.cwd();
+
     const test_file_name = "font_test.fnt";
-    const file = try std.fs.cwd().createFile(test_file_name, .{ .read = true });
-    try file.writeAll(
+    const file = try cwd.createFile(io, test_file_name, .{ .read = true });
+
+    try file.writePositionalAll(io,
         \\info face="default" size=72 bold=0 italic=0 charset="32-59,61,63-91,93-95,97-125" unicode=1 stretchH=100 smooth=1 aa=1 padding=1,1,1,1 spacing=1,1 outline=0
         \\common lineHeight=72 base=55 scaleW=424 scaleH=426 pages=1 packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4
         \\page id=0 file="default.png"
@@ -156,19 +165,20 @@ test "Parse Test Font File" {
         \\char id=34 x=297 y=406 width=22 height=18 xoffset=2 yoffset=5 xadvance=26 page=0 chnl=15
         \\char id=35 x=172 y=318 width=42 height=52 xoffset=-1 yoffset=5 xadvance=41 page=0 chnl=15
         \\char id=36 x=217 y=0 width=41 height=61 xoffset=-1 yoffset=1 xadvance=41 page=0 chnl=15
-    );
-    file.close();
+    , 0);
+    file.close(io);
     defer {
-        std.fs.cwd().deleteFile(test_file_name) catch |err| {
+        cwd.deleteFile(io, test_file_name) catch |err| {
             std.debug.print("Error deleting test file: {any}", .{err});
         };
     }
 
-    const path = try std.fs.cwd().realpathAlloc(std.testing.allocator, "font_test.fnt");
+    const path = try cwd.realPathFileAlloc(io, "font_test.fnt", std.testing.allocator);
     defer std.testing.allocator.free(path);
-    const font: Font = try .init(path);
+    const font: Font = try .init(io, path);
 
     try std.testing.expect(font.size == 72);
+    try std.testing.expect(font.padding == 1);
     try std.testing.expect(font.glyphs[34].x_offset == 2);
     try std.testing.expect(font.glyphs[34].y_offset == 5);
     try std.testing.expect(font.glyphs[34].x_advance == 26);
