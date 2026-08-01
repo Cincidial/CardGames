@@ -133,7 +133,7 @@ fn init() !sdlc.SDL_AppResult {
         .outline_color = Color.BLACK,
         .anchor = Vec2.fromUiRatio(context.window_dim, 0.5, 0.5),
         .align_x = TextAlignment.center,
-    }, "THE!");
+    }, "Test");
 
     // Projection
     context.projection = Mat4.orthographic(context.window_dim.x / 2, context.window_dim.x / -2, context.window_dim.y / 2, context.window_dim.y / -2);
