@@ -37,6 +37,7 @@ pub fn Text(comptime T: type) type {
             std.debug.assert(std.meta.fieldInfo(T, .tex_dim).type == Vec2);
             std.debug.assert(std.meta.fieldInfo(T, .pos).type == Vec3);
             std.debug.assert(std.meta.fieldInfo(T, .color).type == Color);
+            std.debug.assert(std.meta.fieldInfo(T, .outline_size).type == f32);
             std.debug.assert(std.meta.fieldInfo(T, .outline_color).type == Color);
             std.debug.assert(std.meta.fieldInfo(T, .scale).type == Vec2);
         }
@@ -48,6 +49,7 @@ pub fn Text(comptime T: type) type {
             anchor: Vec2 = .ZERO,
             align_x: TextAlignment = .start,
             align_y: TextAlignment = .start,
+            outline_size: f32 = 0,
             outline_color: Color = Color.TRANSPARENT,
         };
 
@@ -63,6 +65,7 @@ pub fn Text(comptime T: type) type {
             const text_size = if (data.text_size <= 0) data.context.font.size else data.text_size;
             const scale = data.context.font.getScale(text_size);
             const scale_vec = Vec2.init(scale, scale);
+            const padding_vec = Vec2.init(data.outline_size, data.outline_size).multScalar(scale);
 
             var gpu_buffer = try DataBuffer.init(data.context.device, string.len * @sizeOf(T));
             errdefer gpu_buffer.deinit();
@@ -70,7 +73,7 @@ pub fn Text(comptime T: type) type {
             var text = try data.context.allocator.alloc(T, string.len);
             errdefer data.context.allocator.free(text);
 
-            var cursor = Vec3.init(0, data.context.font.scaledLineHeight(scale), 0);
+            var cursor = Vec3.init(-data.context.font.glyphs[0].x_offset + padding_vec.x, data.context.font.scaledLineHeight(scale), 0);
             var top: f32 = std.math.floatMin(f32);
             var bottom: f32 = std.math.floatMax(f32);
 
@@ -82,21 +85,17 @@ pub fn Text(comptime T: type) type {
                 text[i].tex_dim = glyph.tex_dimen();
                 text[i].pos = cursor.subY(glyph.scaledDim(scale).y).addVec2(glyph.offset(scale));
                 text[i].color = data.color;
+                text[i].outline_size = data.outline_size;
                 text[i].outline_color = data.outline_color;
                 text[i].scale = scale_vec;
 
                 top = @max(top, text[i].pos.addY(glyph.scaledDim(scale).y).y); // Don't undo the offset change as we want the value to the top of the character, not the cursor start
                 bottom = @min(bottom, text[i].pos.y);
-                cursor = cursor.addVec2(glyph.cursorAdvance(scale));
+                cursor = cursor.addX(glyph.cursorAdvance(scale) + (padding_vec.x * 2));
             }
             const left = text[0].pos.x;
             const right = text[text.len - 1].pos.x + data.context.font.glyphs[string[string.len - 1]].scaledDim(scale).x; // Same here, we just want the right side of the char, so keep the offset
             const rect = Rect.init(left, top, right, bottom);
-
-            // Translate to handle the offset (x) from the first glyph so we are back to "start" alignment
-            for (text) |*value| {
-                value.pos = value.pos.subX(rect.left);
-            }
 
             const anchor = data.anchor;
             const align_x = data.align_x;
@@ -132,7 +131,7 @@ pub fn Text(comptime T: type) type {
             }
             switch (self.data.align_y) {
                 .start => {},
-                .center => translation = translation.addY(self.bounds.height / 2.0),
+                .center => translation = translation.subY(self.bounds.height / 2.0),
                 .end => translation = translation.subY(self.bounds.height),
             }
 
@@ -144,7 +143,7 @@ pub fn Text(comptime T: type) type {
             }
             switch (align_y) {
                 .start => {},
-                .center => translation = translation.subY(self.bounds.height / 2.0),
+                .center => translation = translation.addY(self.bounds.height / 2.0),
                 .end => translation = translation.addY(self.bounds.height),
             }
 

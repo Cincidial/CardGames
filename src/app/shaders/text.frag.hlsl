@@ -6,16 +6,16 @@ struct FragData {
     nointerpolation float4 tex_bounds: TEXCOORD1;
     nointerpolation float2 texel_size: TEXCOORD2;
     nointerpolation float4 color: COLOR0;
+    nointerpolation float outline_size: TEXCOORD3;
     nointerpolation float4 outline_color: COLOR1;
     float4 position: SV_Position;
 };
 
-static const int outline_size = 1;
 float4 main(FragData data): SV_Target0 {
     float4 sample = tex.Sample(samp, data.tex_coord);
-    if (data.outline_color.a != 0 && sample.a <= 0.75) {
-        for (int x = -outline_size; x <= outline_size; x++) {
-            for (int y = -outline_size; y <= outline_size; y++) {
+    if (data.outline_size != 0 && sample.a <= 0.75) {
+        for (int x = -data.outline_size; x <= data.outline_size; x++) {
+            for (int y = -data.outline_size; y <= data.outline_size; y++) {
                 if (x == 0 && y == 0) continue;
 
                 float2 test_coords = (float2(x, y) * data.texel_size) + data.tex_coord;

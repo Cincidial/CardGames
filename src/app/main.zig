@@ -130,10 +130,12 @@ fn init() !sdlc.SDL_AppResult {
         .context = context.text_render_context,
         .text_size = 72,
         .color = Color.GREEN,
+        .outline_size = 3,
         .outline_color = Color.BLACK,
         .anchor = Vec2.fromUiRatio(context.window_dim, 0.5, 0.5),
         .align_x = TextAlignment.center,
-    }, "Test");
+        .align_y = TextAlignment.center,
+    }, "Brown");
 
     // Projection
     context.projection = Mat4.orthographic(context.window_dim.x / 2, context.window_dim.x / -2, context.window_dim.y / 2, context.window_dim.y / -2);

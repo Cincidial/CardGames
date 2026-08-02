@@ -11,7 +11,7 @@ struct InstanceData {
     float2 tex_coord;
     float2 tex_dimensions;
     float3 position;
-    float padding1;
+    float outline_size;
     float4 color;
     float4 outline_color;
     float2 scale;
@@ -24,6 +24,7 @@ struct FragData {
     nointerpolation float4 tex_bounds: TEXCOORD1;
     nointerpolation float2 texel_size: TEXCOORD2;
     nointerpolation float4 color: COLOR0;
+    nointerpolation float outline_size: TEXCOORD3;
     nointerpolation float4 outline_color: COLOR1;
     float4 position: SV_Position;
 };
@@ -48,6 +49,7 @@ FragData main(uint id : SV_VertexID) {
     fragData.tex_bounds = float4(inst.tex_coord, inst.tex_coord + inst.tex_dimensions) / float4(atlas_dimensions, atlas_dimensions); // l, t, r, b
     fragData.texel_size = 1 / atlas_dimensions;
     fragData.color = inst.color;
+    fragData.outline_size = inst.outline_size;
     fragData.outline_color = inst.outline_color;
     fragData.position = mul(projection, float4(float3(quad_vertex, 0) + inst.position, 1.0f));
 

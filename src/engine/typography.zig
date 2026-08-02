@@ -16,6 +16,7 @@ pub const TypographyError = error{
     FontFilePropMissingValue,
     FontFileMultipleCharIdsInOneLine,
     FontFileCharMustHaveIdSetBeforeOtherProps,
+    FontFilePaddingMissingComma,
 };
 
 pub const Glyph = struct {
@@ -45,8 +46,8 @@ pub const Glyph = struct {
         return Vec2.init(self.x_offset, -self.y_offset).multScalar(scale);
     }
 
-    pub fn cursorAdvance(self: *const Glyph, scale: f32) Vec2 {
-        return Vec2.init(self.x_advance, 0).multScalar(scale);
+    pub fn cursorAdvance(self: *const Glyph, scale: f32) f32 {
+        return self.x_advance * scale;
     }
 };
 
@@ -83,7 +84,10 @@ pub const Font = struct {
 
                 const value_string = prop_it.next() orelse return TypographyError.FontFilePropMissingValue;
                 const value: i32 = switch (prop_type) {
-                    .padding => try std.fmt.parseInt(i32, value_string[0..1], 10),
+                    .padding => blk: {
+                        const comma_index = std.mem.find(u8, value_string, ",") orelse return TypographyError.FontFilePaddingMissingComma;
+                        break :blk try std.fmt.parseInt(i32, value_string[0..comma_index], 10);
+                    },
                     else => try std.fmt.parseInt(i32, value_string, 10),
                 };
 
@@ -156,7 +160,7 @@ test "Parse Test Font File" {
     const file = try cwd.createFile(io, test_file_name, .{ .read = true });
 
     try file.writePositionalAll(io,
-        \\info face="default" size=72 bold=0 italic=0 charset="32-59,61,63-91,93-95,97-125" unicode=1 stretchH=100 smooth=1 aa=1 padding=1,1,1,1 spacing=1,1 outline=0
+        \\info face="default" size=72 bold=0 italic=0 charset="32-59,61,63-91,93-95,97-125" unicode=1 stretchH=100 smooth=1 aa=1 padding=10,10,10,10 spacing=1,1 outline=0
         \\common lineHeight=72 base=55 scaleW=424 scaleH=426 pages=1 packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4
         \\page id=0 file="default.png"
         \\chars count=90
@@ -178,7 +182,7 @@ test "Parse Test Font File" {
     const font: Font = try .init(io, path);
 
     try std.testing.expect(font.size == 72);
-    try std.testing.expect(font.padding == 1);
+    try std.testing.expect(font.padding == 10);
     try std.testing.expect(font.glyphs[34].x_offset == 2);
     try std.testing.expect(font.glyphs[34].y_offset == 5);
     try std.testing.expect(font.glyphs[34].x_advance == 26);
