@@ -164,6 +164,17 @@ pub fn Text(comptime T: type) type {
             self.* = try .init(data, string);
         }
 
+        pub fn changeOutlineColor(self: *@This(), color: Color) void {
+            if (!std.meta.eql(self.data.outline_color, color)) {
+                self.data.outline_color = color;
+                for (self.text) |*value| {
+                    value.outline_color = color;
+                }
+
+                self.has_changes = true;
+            }
+        }
+
         pub fn copyPass(self: *@This(), copy_pass: *sdlc.SDL_GPUCopyPass) !void {
             if (!self.has_changes) return;
 

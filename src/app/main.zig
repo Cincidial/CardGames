@@ -135,7 +135,7 @@ fn init() !sdlc.SDL_AppResult {
         .anchor = Vec2.fromUiRatio(context.window_dim, 0.5, 0.5),
         .align_x = TextAlignment.center,
         .align_y = TextAlignment.center,
-    }, "Brown");
+    }, "Start");
 
     // Projection
     context.projection = Mat4.orthographic(context.window_dim.x / 2, context.window_dim.x / -2, context.window_dim.y / 2, context.window_dim.y / -2);
@@ -181,6 +181,9 @@ fn event(e: sdlc.SDL_Event) !sdlc.SDL_AppResult {
         sdlc.SDL_EVENT_QUIT => return sdlc.SDL_APP_SUCCESS,
         sdlc.SDL_EVENT_KEY_DOWN => {
             if (e.key.scancode == sdlc.SDL_SCANCODE_ESCAPE) return sdlc.SDL_APP_SUCCESS;
+            if (e.key.scancode == sdlc.SDL_SCANCODE_R) context.title.changeOutlineColor(Color.RED);
+            if (e.key.scancode == sdlc.SDL_SCANCODE_B) context.title.changeOutlineColor(Color.BLACK);
+            if (e.key.scancode == sdlc.SDL_SCANCODE_W) context.title.changeOutlineColor(Color.WHITE);
         },
         else => return sdlc.SDL_APP_CONTINUE,
     }
