@@ -11,6 +11,7 @@ const sdlc = @import("root.zig").sdlc;
 const TextureSamplerBinding = @import("root.zig").TextureSamplerBinding;
 const Vec2 = @import("root.zig").Vec2;
 const Vec3 = @import("root.zig").Vec3;
+const UIKitData = @import("root.zig").UIKit.Data;
 
 pub const TextAlignment = enum {
     start, // Left for x, top for y
@@ -42,7 +43,7 @@ pub fn Text(comptime T: type) type {
             std.debug.assert(std.meta.fieldInfo(T, .scale).type == Vec2);
         }
 
-        pub const Data = struct {
+        pub const Configuration = struct {
             context: TextRenderContext,
             text_size: f32 = 0, // Setting a size of 0 or less will use the fonts natural size
             color: Color = .BLACK,
@@ -53,40 +54,39 @@ pub fn Text(comptime T: type) type {
             outline_color: Color = Color.TRANSPARENT,
         };
 
-        data: Data,
+        config: Configuration,
         gpu_data_buffer: DataBuffer,
         text: []T,
-        bounds: Rect,
-        has_changes: bool = true,
+        ui_kit: UIKitData,
 
-        pub fn init(data: Data, string: []const u8) !@This() {
+        pub fn init(config: Configuration, string: []const u8) !@This() {
             std.debug.assert(string.len > 0);
 
-            const text_size = if (data.text_size <= 0) data.context.font.size else data.text_size;
-            const scale = data.context.font.getScale(text_size);
+            const text_size = if (config.text_size <= 0) config.context.font.size else config.text_size;
+            const scale = config.context.font.getScale(text_size);
             const scale_vec = Vec2.init(scale, scale);
-            const padding_vec = Vec2.init(data.outline_size, data.outline_size).multScalar(scale);
+            const padding_vec = Vec2.init(config.outline_size, config.outline_size).multScalar(scale);
 
-            var gpu_buffer = try DataBuffer.init(data.context.device, string.len * @sizeOf(T));
+            var gpu_buffer = try DataBuffer.init(config.context.device, string.len * @sizeOf(T));
             errdefer gpu_buffer.deinit();
 
-            var text = try data.context.allocator.alloc(T, string.len);
-            errdefer data.context.allocator.free(text);
+            var text = try config.context.allocator.alloc(T, string.len);
+            errdefer config.context.allocator.free(text);
 
-            var cursor = Vec3.init(-data.context.font.glyphs[0].x_offset + padding_vec.x, data.context.font.scaledLineHeight(scale), 0);
+            var cursor = Vec3.init(-config.context.font.glyphs[0].x_offset + padding_vec.x, config.context.font.scaledLineHeight(scale), 0);
             var top: f32 = std.math.floatMin(f32);
             var bottom: f32 = std.math.floatMax(f32);
 
             for (string, 0..) |c, i| {
                 if (c == 0) break;
-                const glyph = data.context.font.glyphs[c];
+                const glyph = config.context.font.glyphs[c];
 
                 text[i].tex_coord = glyph.tex_coord();
                 text[i].tex_dim = glyph.tex_dimen();
                 text[i].pos = cursor.subY(glyph.scaledDim(scale).y).addVec2(glyph.offset(scale));
-                text[i].color = data.color;
-                text[i].outline_size = data.outline_size;
-                text[i].outline_color = data.outline_color;
+                text[i].color = config.color;
+                text[i].outline_size = config.outline_size;
+                text[i].outline_color = config.outline_color;
                 text[i].scale = scale_vec;
 
                 top = @max(top, text[i].pos.addY(glyph.scaledDim(scale).y).y); // Don't undo the offset change as we want the value to the top of the character, not the cursor start
@@ -94,79 +94,82 @@ pub fn Text(comptime T: type) type {
                 cursor = cursor.addX(glyph.cursorAdvance(scale) + (padding_vec.x * 2));
             }
             const left = text[0].pos.x;
-            const right = text[text.len - 1].pos.x + data.context.font.glyphs[string[string.len - 1]].scaledDim(scale).x; // Same here, we just want the right side of the char, so keep the offset
+            const right = text[text.len - 1].pos.x + config.context.font.glyphs[string[string.len - 1]].scaledDim(scale).x; // Same here, we just want the right side of the char, so keep the offset
             const rect = Rect.init(left, top, right, bottom);
 
-            const anchor = data.anchor;
-            const align_x = data.align_x;
-            const align_y = data.align_y;
+            const anchor = config.anchor;
+            const align_x = config.align_x;
+            const align_y = config.align_y;
             var result: Text(T) = .{
-                .data = data,
+                .config = config,
                 .gpu_data_buffer = gpu_buffer,
                 .text = text,
-                .bounds = rect.translate(rect.topLeft().negate()), // Make the bounds match the glyphs start alignment
+                .ui_kit = .{
+                    .has_changes = true,
+                    .bounds = rect.translate(rect.topLeft().negate()), // Make the bounds match the glyphs start alignment
+                },
             };
 
-            result.data.anchor = .ZERO;
-            result.data.align_x = .start;
-            result.data.align_y = .start;
+            result.config.anchor = .ZERO;
+            result.config.align_x = .start;
+            result.config.align_y = .start;
             result.reposition(anchor, align_x, align_y);
             return result;
         }
 
         pub fn deinit(self: *@This()) void {
-            self.data.context.allocator.free(self.text);
+            self.config.context.allocator.free(self.text);
             self.gpu_data_buffer.deinit();
             self.* = undefined;
         }
 
         pub fn reposition(self: *@This(), anchor: Vec2, align_x: TextAlignment, align_y: TextAlignment) void {
-            var translation = anchor.sub(self.data.anchor);
+            var translation = anchor.sub(self.config.anchor);
 
             // Undo the original alignment
-            switch (self.data.align_x) {
+            switch (self.config.align_x) {
                 .start => {},
-                .center => translation = translation.addX(self.bounds.width / 2.0),
+                .center => translation = translation.addX(self.ui_kit.bounds.width / 2.0),
                 .end => unreachable,
             }
-            switch (self.data.align_y) {
+            switch (self.config.align_y) {
                 .start => {},
-                .center => translation = translation.subY(self.bounds.height / 2.0),
-                .end => translation = translation.subY(self.bounds.height),
+                .center => translation = translation.subY(self.ui_kit.bounds.height / 2.0),
+                .end => translation = translation.subY(self.ui_kit.bounds.height),
             }
 
             // Apply the new alignment
             switch (align_x) {
                 .start => {},
-                .center => translation = translation.subX(self.bounds.width / 2.0),
+                .center => translation = translation.subX(self.ui_kit.bounds.width / 2.0),
                 .end => unreachable,
             }
             switch (align_y) {
                 .start => {},
-                .center => translation = translation.addY(self.bounds.height / 2.0),
-                .end => translation = translation.addY(self.bounds.height),
+                .center => translation = translation.addY(self.ui_kit.bounds.height / 2.0),
+                .end => translation = translation.addY(self.ui_kit.bounds.height),
             }
 
-            self.data.anchor = anchor;
-            self.data.align_x = align_x;
-            self.data.align_y = align_y;
-            self.bounds = self.bounds.translate(translation);
+            self.config.anchor = anchor;
+            self.config.align_x = align_x;
+            self.config.align_y = align_y;
+            self.ui_kit.bounds = self.ui_kit.bounds.translate(translation);
 
             for (self.text) |*value| {
                 value.pos = value.pos.addVec2(translation);
             }
-            self.has_changes = true;
+            self.ui_kit.has_changes = true;
         }
 
         pub fn changeText(self: *@This(), string: []const u8) !void {
-            const data = self.data;
+            const config = self.config;
             self.deinit();
-            self.* = try .init(data, string);
+            self.* = try .init(config, string);
         }
 
         pub fn changeOutlineColor(self: *@This(), color: Color) void {
-            if (!std.meta.eql(self.data.outline_color, color)) {
-                self.data.outline_color = color;
+            if (!std.meta.eql(self.config.outline_color, color)) {
+                self.config.outline_color = color;
                 for (self.text) |*value| {
                     value.outline_color = color;
                 }
@@ -176,19 +179,19 @@ pub fn Text(comptime T: type) type {
         }
 
         pub fn copyPass(self: *@This(), copy_pass: *sdlc.SDL_GPUCopyPass) !void {
-            if (!self.has_changes) return;
+            if (!self.ui_kit.has_changes) return;
 
             try self.gpu_data_buffer.upload(copy_pass, T, self.text);
-            self.has_changes = false;
+            self.ui_kit.has_changes = false;
         }
 
         // TODO: Better handling of uniforms, instead of just taking in a required Mat4
         pub fn renderPass(self: *@This(), cmd_buf: *sdlc.SDL_GPUCommandBuffer, render_pass: *sdlc.SDL_GPURenderPass, projection: Mat4) void {
-            sdlc.SDL_BindGPUGraphicsPipeline(render_pass, self.data.context.pipeline);
+            sdlc.SDL_BindGPUGraphicsPipeline(render_pass, self.config.context.pipeline);
             self.gpu_data_buffer.bind(render_pass, 0);
-            sdlc.SDL_BindGPUFragmentSamplers(render_pass, 0, &self.data.context.texture_sampler.binding, 1);
+            sdlc.SDL_BindGPUFragmentSamplers(render_pass, 0, &self.config.context.texture_sampler.binding, 1);
             projection.uniformBind(cmd_buf, 0);
-            self.data.context.texture_sampler.texture.dimensions.uniformBind(cmd_buf, 1);
+            self.config.context.texture_sampler.texture.dimensions.uniformBind(cmd_buf, 1);
             sdlc.SDL_DrawGPUPrimitives(render_pass, @intCast(6 * self.text.len), 1, 0, 0); // 6 primitives to form a quad per instance. TODO: create a function in sdl.zig for this logic
         }
     };

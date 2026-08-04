@@ -8,6 +8,7 @@ const sdlc = @import("engine").sdlc;
 const TextAlignment = @import("engine").Text.TextAlignment;
 const Texture = @import("engine").Texture;
 const Vec2 = @import("engine").Vec2;
+const UIKit = @import("engine").UIKit;
 
 const context = @import("context.zig");
 const shaders = @import("shaders/shaders.zig");
@@ -126,13 +127,14 @@ fn init() !sdlc.SDL_AppResult {
         .pipeline = context.text_pipeline,
     };
 
-    context.title = try .init(.{
+    // UI creation
+    var title: Text = try .init(.{
         .context = context.text_render_context,
         .text_size = 72,
         .color = Color.GREEN,
         .outline_size = 3,
         .outline_color = Color.BLACK,
-        .anchor = Vec2.fromUiRatio(context.window_dim, 0.5, 0.5),
+        .anchor = UIKit.vec2FromUiRatio(context.window_dim, 0.5, 0.5),
         .align_x = TextAlignment.center,
         .align_y = TextAlignment.center,
     }, "Start");
@@ -161,13 +163,17 @@ fn iterate() !sdlc.SDL_AppResult {
         };
         const cpy_pass = sdlc.SDL_BeginGPUCopyPass(cmd_buf).?;
         {
-            try context.title.copyPass(cpy_pass);
+            for (context.ui.items) |*item| {
+                try item.copyPass(cpy_pass);
+            }
         }
         sdlc.SDL_EndGPUCopyPass(cpy_pass);
 
         const render_pass = sdlc.SDL_BeginGPURenderPass(cmd_buf, &colorTargetInfo, 1, null).?;
         {
-            context.title.renderPass(cmd_buf, render_pass, context.projection);
+            for (context.ui.items) |*item| {
+                try item.renderPass(cmd_buf, render_pass, context.projection);
+            }
         }
         sdlc.SDL_EndGPURenderPass(render_pass);
     }
@@ -181,9 +187,6 @@ fn event(e: sdlc.SDL_Event) !sdlc.SDL_AppResult {
         sdlc.SDL_EVENT_QUIT => return sdlc.SDL_APP_SUCCESS,
         sdlc.SDL_EVENT_KEY_DOWN => {
             if (e.key.scancode == sdlc.SDL_SCANCODE_ESCAPE) return sdlc.SDL_APP_SUCCESS;
-            if (e.key.scancode == sdlc.SDL_SCANCODE_R) context.title.changeOutlineColor(Color.RED);
-            if (e.key.scancode == sdlc.SDL_SCANCODE_B) context.title.changeOutlineColor(Color.BLACK);
-            if (e.key.scancode == sdlc.SDL_SCANCODE_W) context.title.changeOutlineColor(Color.WHITE);
         },
         else => return sdlc.SDL_APP_CONTINUE,
     }
@@ -194,7 +197,10 @@ fn event(e: sdlc.SDL_Event) !sdlc.SDL_AppResult {
 fn quit(_: sdlc.SDL_AppResult) void {
     if (!init_complete) return;
 
-    context.title.deinit();
+    for (context.ui.items) |*item| {
+        item.deinit();
+    }
+    context.ui.deinit(context.gpa);
     context.resource_manager.deinit();
 
     sdlc.SDL_ReleaseGPUGraphicsPipeline(context.gpu_device, context.text_pipeline);

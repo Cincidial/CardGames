@@ -20,6 +20,7 @@ pub const Vec2 = @import("math.zig").Vec2;
 pub const Vec3 = @import("math.zig").Vec3;
 pub const VertexBuffer = @import("VertexBuffer.zig");
 pub const VertexRenderer = @import("VertexRenderer.zig");
+pub const UIKit = @import("UIKit.zig");
 
 test {
     std.testing.refAllDecls(@This());

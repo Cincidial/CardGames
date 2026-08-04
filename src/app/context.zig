@@ -7,6 +7,7 @@ const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
 const TextRenderContext = @import("engine").Text.TextRenderContext;
 const Vec2 = @import("engine").Vec2;
+const UIKit = @import("engine").UIKit;
 
 const shaders = @import("shaders/shaders.zig");
 
@@ -28,5 +29,5 @@ pub var text_pipeline: *sdlc.SDL_GPUGraphicsPipeline = undefined;
 
 pub var resource_manager: ResourceManager = undefined;
 pub var text_render_context: TextRenderContext = undefined;
-pub var title: Text = undefined;
+pub var ui: std.ArrayList(UIKit.Interface) = .empty;
 pub var projection: Mat4 = undefined;
