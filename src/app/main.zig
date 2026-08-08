@@ -129,7 +129,7 @@ fn init() !sdlc.SDL_AppResult {
     };
 
     // UI creation
-    const title: Text = try .init(.{
+    var title: Text = try .init(.{
         .context = context.text_render_context,
         .text_size = 72,
         .color = Color.GREEN,
@@ -139,6 +139,8 @@ fn init() !sdlc.SDL_AppResult {
         .align_x = TextAlignment.center,
         .align_y = TextAlignment.center,
     }, "Start");
+    title.ui_kit.on_mouse_enter = .{ .context = .{ .color = Color.RED } };
+    title.ui_kit.on_mouse_exit = .{ .context = .{ .color = Color.BLACK } };
     try context.ui.append(context.gpa, .{ .text = title });
 
     // Projection
@@ -189,6 +191,13 @@ fn event(e: sdlc.SDL_Event) !sdlc.SDL_AppResult {
         sdlc.SDL_EVENT_QUIT => return sdlc.SDL_APP_SUCCESS,
         sdlc.SDL_EVENT_KEY_DOWN => {
             if (e.key.scancode == sdlc.SDL_SCANCODE_ESCAPE) return sdlc.SDL_APP_SUCCESS;
+        },
+        sdlc.SDL_EVENT_MOUSE_MOTION => {
+            // UIKit mouse location needs to be transformed such that the origin is screen center
+            const mouse = UIKit.vec2FromMouse(context.window_dim, e.motion.x, e.motion.y);
+            for (context.ui.items) |*item| {
+                try item.mouseMotion(mouse);
+            }
         },
         else => return sdlc.SDL_APP_CONTINUE,
     }

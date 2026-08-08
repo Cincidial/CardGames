@@ -101,7 +101,7 @@ pub fn init(config: Configuration, string: []const u8) !@This() {
         .gpu_data_buffer = gpu_buffer,
         .text = text,
         .ui_kit = .{
-            .has_changes = true,
+            .has_gpu_upload_changes = true,
             .bounds = rect,
         },
     };
@@ -155,7 +155,7 @@ pub fn reposition(self: *@This(), anchor: Vec2, align_x: Alignment, align_y: Ali
     for (self.text) |*value| {
         value.pos = value.pos.addVec2(translation);
     }
-    self.ui_kit.has_changes = true;
+    self.ui_kit.has_gpu_upload_changes = true;
 }
 
 pub fn changeText(self: *@This(), string: []const u8) !void {
@@ -171,18 +171,15 @@ pub fn changeOutlineColor(self: *@This(), color: Color) void {
             value.outline_color = color;
         }
 
-        self.has_changes = true;
+        self.ui_kit.has_gpu_upload_changes = true;
     }
 }
 
+/// When called outside of ui kit, this does not check if there are changes or not to upload
 pub fn copyPass(self: *@This(), copy_pass: *sdlc.SDL_GPUCopyPass) !void {
-    if (!self.ui_kit.has_changes) return;
-
     try self.gpu_data_buffer.upload(copy_pass, VertexData, self.text);
-    self.ui_kit.has_changes = false;
 }
 
-// TODO: Better handling of uniforms, instead of just taking in a required Mat4
 pub fn renderPass(self: *@This(), cmd_buf: *sdlc.SDL_GPUCommandBuffer, render_pass: *sdlc.SDL_GPURenderPass, projection: Mat4) void {
     sdlc.SDL_BindGPUGraphicsPipeline(render_pass, self.config.context.pipeline);
     self.gpu_data_buffer.bind(render_pass, 0);
