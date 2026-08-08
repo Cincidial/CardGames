@@ -5,10 +5,11 @@ const Font = @import("engine").typography.Font;
 const Mat4 = @import("engine").Mat4;
 const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
-const TextAlignment = @import("engine").Text.TextAlignment;
+const TextAlignment = @import("engine").Text.Alignment;
 const Texture = @import("engine").Texture;
 const Vec2 = @import("engine").Vec2;
 const UIKit = @import("engine").UIKit;
+const Text = @import("engine").Text;
 
 const context = @import("context.zig");
 const shaders = @import("shaders/shaders.zig");
@@ -128,7 +129,7 @@ fn init() !sdlc.SDL_AppResult {
     };
 
     // UI creation
-    var title: Text = try .init(.{
+    const title: Text = try .init(.{
         .context = context.text_render_context,
         .text_size = 72,
         .color = Color.GREEN,
@@ -138,6 +139,7 @@ fn init() !sdlc.SDL_AppResult {
         .align_x = TextAlignment.center,
         .align_y = TextAlignment.center,
     }, "Start");
+    try context.ui.append(context.gpa, .{ .text = title });
 
     // Projection
     context.projection = Mat4.orthographic(context.window_dim.x / 2, context.window_dim.x / -2, context.window_dim.y / 2, context.window_dim.y / -2);
@@ -172,7 +174,7 @@ fn iterate() !sdlc.SDL_AppResult {
         const render_pass = sdlc.SDL_BeginGPURenderPass(cmd_buf, &colorTargetInfo, 1, null).?;
         {
             for (context.ui.items) |*item| {
-                try item.renderPass(cmd_buf, render_pass, context.projection);
+                item.renderPass(cmd_buf, render_pass, context.projection);
             }
         }
         sdlc.SDL_EndGPURenderPass(render_pass);

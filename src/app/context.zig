@@ -5,13 +5,9 @@ const Mat4 = @import("engine").Mat4;
 const ResourceManager = @import("engine").ResourceManager;
 const sdl = @import("engine").sdl;
 const sdlc = @import("engine").sdlc;
-const TextRenderContext = @import("engine").Text.TextRenderContext;
+const TextRenderContext = @import("engine").Text.RenderContext;
 const Vec2 = @import("engine").Vec2;
 const UIKit = @import("engine").UIKit;
-
-const shaders = @import("shaders/shaders.zig");
-
-const Text = @import("engine").Text.Text(shaders.VertexTextData);
 
 pub const log = std.log.scoped(.App);
 pub const window_dim = Vec2.init(720, 720);

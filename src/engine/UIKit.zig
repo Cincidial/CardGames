@@ -2,6 +2,7 @@ const Mat4 = @import("root.zig").Mat4;
 const Rect = @import("root.zig").Rect;
 const sdlc = @import("root.zig").sdlc;
 const Vec2 = @import("root.zig").Vec2;
+const Text = @import("root.zig").Text;
 
 pub const Data = struct {
     has_changes: bool = false,
@@ -11,39 +12,34 @@ pub const Data = struct {
 };
 
 pub const Interface = union(enum) {
-    const Text = @import("root.zig").Text;
-
     text: Text,
 
     pub fn deinit(self: *@This()) void {
-        switch (self) {
-            .null => {},
-            inline else => |impl| try impl.deinit(),
+        switch (self.*) {
+            inline else => |*impl| impl.deinit(),
         }
     }
 
     pub fn copyPass(self: *@This(), copy_pass: *sdlc.SDL_GPUCopyPass) !void {
-        if (!self.ui_kit.has_changes) return;
-
-        switch (self) {
-            .null => {},
-            inline else => |impl| try impl.copyPass(copy_pass),
+        switch (self.*) {
+            inline else => |*impl| {
+                if (!impl.ui_kit.has_changes) return;
+                try impl.copyPass(copy_pass);
+                impl.ui_kit.has_changes = false;
+            },
         }
-        self.ui_kit.has_changes = false;
     }
 
     // TODO: Better handling of uniforms, instead of just taking in a required Mat4
     pub fn renderPass(self: *@This(), cmd_buf: *sdlc.SDL_GPUCommandBuffer, render_pass: *sdlc.SDL_GPURenderPass, projection: Mat4) void {
-        switch (self) {
-            .null => {},
-            inline else => |impl| impl.renderPass(cmd_buf, render_pass, projection),
+        switch (self.*) {
+            inline else => |*impl| impl.renderPass(cmd_buf, render_pass, projection),
         }
     }
 
     pub fn mouseMovement(self: *@This(), mouse: Vec2) void {
-        switch (self) {
-            .null => {},
-            inline else => |impl| {
+        switch (self.*) {
+            inline else => |*impl| {
                 if (impl.ui_kit.bounds.containsPoint(mouse)) {}
             },
         }
